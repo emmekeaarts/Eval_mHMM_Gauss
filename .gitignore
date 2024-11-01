@@ -1,0 +1,14 @@
+.Rproj.user
+.Rhistory
+.RData
+.Ruserdata
+Figures/
+out/
+out_V4/
+out_V4_conv/
+out2/
+Preliminary_sim_results/
+Sim_results/
+V2/
+V3/
+Extracted_results/
