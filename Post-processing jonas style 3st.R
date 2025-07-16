@@ -219,7 +219,7 @@ extracted_results_3st <- list(group_out_3st_emiss_mean = group_out_3st_emiss_mea
                               burn_in = burn_in)
 saveRDS(extracted_results_3st, file = "extracted_results_3st.RDS")
 
-# extracted_results_3st <- readRDS("extracted_results_3st.RDS")
+# extracted_results_3st <- readRDS("Extracted_results/extracted_results_3st.RDS")
 
 # Model selection ####
 # selection_out <- extracted_results_3st$selection_out
@@ -250,6 +250,53 @@ saveRDS(Model_selection_3st, file = "result_tables/Model_selection_3st.RDS")
 
 
 # Model performance 
+
+### Explaining bias in emission ####
+#### Quantifying likely label switching problem occurences ####
+rmse <- function(x){
+  row_mean <- mean(x)
+  rmse <- sqrt(sum((mean(x) - x)^2 / true_m))
+  return(rmse)
+}
+
+Label_switch_proxy_3st <- data.frame(sim_iteration = 1:n_sim,
+                                     true_m = true_m,
+                                     n = rep(settings4[c(selected, selected_p2, selected_p4), 1], times = n_sim  * settings4[c(selected, selected_p2, selected_p4), 3]), 
+                                     n_t = rep(settings4[c(selected, selected_p2, selected_p4), 2], times = n_sim  * settings4[c(selected, selected_p2, selected_p4), 3]),
+                                     n_dep = rep(settings4[c(selected, selected_p2, selected_p4), 3], times = n_sim  * settings4[c(selected, selected_p2, selected_p4), 3]),
+                                     KL_div = rep(settings4[c(selected, selected_p2, selected_p4), 4], times = n_sim  * settings4[c(selected, selected_p2, selected_p4), 3]), 
+                                     dep = rep(sequence(settings4[c(selected, selected_p2, selected_p4), 3], 1, 1), each = n_sim),
+                                     RMSE = NA)
+
+
+it <- n_sim  * settings4[c(selected, selected_p2, selected_p4), 3]
+cumsum_it <-  c(0,cumsum(n_sim  * settings4[c(selected, selected_p2, selected_p4), 3]))
+
+for(sc in 1:length(c(selected, selected_p2, selected_p4))){
+  Label_switch_proxy_3st[(1 + cumsum_it[sc]) : (it[sc] + cumsum_it[sc]),8] <- unlist(lapply(group_out_3st_emiss_mean[[sc]]$median, apply, 1, rmse))
+}
+
+View(Label_switch_proxy_3st)
+
+saveRDS(Label_switch_proxy_3st, file = "result_tables/Label_switch_proxy_3st.RDS")
+# Label_switch_proxy_3st <- readRDS("result_tables/Label_switch_proxy_3st.RDS")
+
+aggr_Label_switch_proxy_3st <- aggregate(Label_switch_proxy_3st, by = list(Label_switch_proxy_3st$sim_iteration, Label_switch_proxy_3st$KL_div,Label_switch_proxy_3st$n_dep, 
+                                                                           Label_switch_proxy_3st$n_t, Label_switch_proxy_3st$n), FUN = mean)
+
+
+aggr_Label_switch_proxy_3st$present <- (aggr_Label_switch_proxy_3st$RMSE < 0.20 ) * 1
+
+mean(aggr_Label_switch_proxy_3st$present[aggr_Label_switch_proxy_3st$KL_div == 3])
+mean(aggr_Label_switch_proxy_3st$present[aggr_Label_switch_proxy_3st$KL_div == 7])
+
+mean(aggr_Label_switch_proxy_3st$present[aggr_Label_switch_proxy_3st$KL_div == 5 & aggr_Label_switch_proxy_3st$n_dep == 8])
+
+
+aggr_label2 <- aggregate(aggr_Label_switch_proxy_3st, by = list(aggr_Label_switch_proxy_3st$KL_div, 
+                                                                aggr_Label_switch_proxy_3st$n_dep, 
+                                                                aggr_Label_switch_proxy_3st$n_t, 
+                                                                aggr_Label_switch_proxy_3st$n), FUN = mean)
 
 ## Emission distribution ####
 Performance_emission_3st <- data.frame(sim_iteration = 1:n_sim,
@@ -293,62 +340,178 @@ View(Performance_emission_3st)
 saveRDS(Performance_emission_3st, file = "result_tables/Performance_emission_3st.RDS")
 # Performance_emission_3st <- readRDS(file = "result_tables/Performance_emission_3st.RDS")
 
+
+
+
 Performance_emission_3st$abs_rel_bias <- abs(Performance_emission_3st$mean_hat - Performance_emission_3st$mean_true) / abs(Performance_emission_3st$mean_true)
+Performance_emission_3st$SD_rel_bias <- abs(Performance_emission_3st$SD_hat - Performance_emission_3st$SD_true) / abs(Performance_emission_3st$SD_true)
 aggr_Performance_emission_3st <- aggregate(Performance_emission_3st, by = list(Performance_emission_3st$KL_div, 
                                                                                Performance_emission_3st$n_dep, 
                                                                                Performance_emission_3st$n_t, 
                                                                                Performance_emission_3st$n), FUN = median)
 
 
+ggplot(data = aggr_Performance_emission_3st, mapping = aes(x = n_t, y = abs_rel_bias, group = as.factor(n), color = as.factor(n))) +
+  geom_point() + 
+  geom_line() +
+  ylab("Bias emission means") + 
+  scale_color_discrete(name = "Number of\nsubjects") +
+  scale_x_continuous(trans='log2', breaks = c(50, 100, 200, 400, 800)) +
+  facet_grid(rows = vars(as.factor(KL_div)), cols = vars(as.factor(n_dep))) +
+  xlab("number of observations per subject") +
+  geom_hline(yintercept=c(.10), linetype="dashed", color = "grey") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust= 0.5))
 
 
-cor(aggr_Performance_emission_3st$abs_rel_bias, aggr_label2$present)
+#### correcting for label switching ####
+bias_noL_Performance_emission_3st <- Performance_emission_3st[order(
+                                                                    Performance_emission_3st$KL_div, 
+                                                                    Performance_emission_3st$n_dep, 
+                                                                    Performance_emission_3st$n_t, 
+                                                                    Performance_emission_3st$n,
+                                                                    Performance_emission_3st$sim_iteration,
+                                                                    Performance_emission_3st$dep,
+                                                                    Performance_emission_3st$k
+                                                                    
+                                                                    ),]
 
-### Explaining bias in emission ####
-#### Quantifying likely label switching problem occurences ####
-rmse <- function(x){
-  row_mean <- mean(x)
-  rmse <- sqrt(sum((mean(x) - x)^2 / true_m))
-  return(rmse)
-}
-
-Label_switch_proxy_3st <- data.frame(sim_iteration = 1:n_sim,
-                                       true_m = true_m,
-                                       n = rep(settings4[c(selected, selected_p2, selected_p4), 1], times = n_sim  * settings4[c(selected, selected_p2, selected_p4), 3]), 
-                                       n_t = rep(settings4[c(selected, selected_p2, selected_p4), 2], times = n_sim  * settings4[c(selected, selected_p2, selected_p4), 3]),
-                                       n_dep = rep(settings4[c(selected, selected_p2, selected_p4), 3], times = n_sim  * settings4[c(selected, selected_p2, selected_p4), 3]),
-                                       KL_div = rep(settings4[c(selected, selected_p2, selected_p4), 4], times = n_sim  * settings4[c(selected, selected_p2, selected_p4), 3]), 
-                                       dep = rep(sequence(settings4[c(selected, selected_p2, selected_p4), 3], 1, 1), each = n_sim),
-                                       RMSE = NA)
-                                       
-
-it <- n_sim  * settings4[c(selected, selected_p2, selected_p4), 3]
-cumsum_it <-  c(0,cumsum(n_sim  * settings4[c(selected, selected_p2, selected_p4), 3]))
-
-for(sc in 1:length(c(selected, selected_p2, selected_p4))){
-  Label_switch_proxy_3st[(1 + cumsum_it[sc]) : (it[sc] + cumsum_it[sc]),8] <- unlist(lapply(group_out_3st_emiss_mean[[sc]]$median, apply, 1, rmse))
-}
+order_aggr_Label_switch_proxy_3st <- aggr_Label_switch_proxy_3st[order(aggr_Label_switch_proxy_3st$KL_div, 
+                                                                       aggr_Label_switch_proxy_3st$n_dep, 
+                                                                       aggr_Label_switch_proxy_3st$n_t, 
+                                                                       aggr_Label_switch_proxy_3st$n,
+                                                                       aggr_Label_switch_proxy_3st$sim_iteration
+                                                              ),]
 
 
-saveRDS(Label_switch_proxy_3st, file = "result_tables/Label_switch_proxy_3st.RDS")
-# Label_switch_proxy_3st <- readRDS("result_tables/Label_switch_proxy_3st.RDS")
 
-aggr_Label_switch_proxy_3st <- aggregate(Label_switch_proxy_3st, by = list(Label_switch_proxy_3st$sim_iteration, Label_switch_proxy_3st$KL_div,Label_switch_proxy_3st$n_dep, 
-                                                                           Label_switch_proxy_3st$n_t, Label_switch_proxy_3st$n, ), FUN = mean)
+View(bias_noL_Performance_emission_3st)
+
+bias_noL_Performance_emission_3st$RMSE <- rep(order_aggr_Label_switch_proxy_3st$RMSE, 
+                                              times = order_aggr_Label_switch_proxy_3st$n_dep * true_m)
+
+bias_noL_Performance_emission_3st <- bias_noL_Performance_emission_3st[bias_noL_Performance_emission_3st$RMSE > 0.20 & 
+                                                                         bias_noL_Performance_emission_3st$KL_div > 3,]
+
+#### inspecting absolute relative bias for gaussian emission means ####
+aggr_bias_noL_Performance_emission_3st <- aggregate(bias_noL_Performance_emission_3st, by = list(bias_noL_Performance_emission_3st$KL_div, 
+                                                                                                 bias_noL_Performance_emission_3st$n_dep, 
+                                                                                                 bias_noL_Performance_emission_3st$n_t, 
+                                                                                                 bias_noL_Performance_emission_3st$n), FUN = median)
 
 
-aggr_Label_switch_proxy_3st$present <- (aggr_Label_switch_proxy_3st$RMSE < 0.20 ) * 1
+aggr_bias_noL_Performance_emission_3st <- aggr_bias_noL_Performance_emission_3st[-which(aggr_bias_noL_Performance_emission_3st$KL_div == 5 &
+                                                aggr_bias_noL_Performance_emission_3st$n_dep == 2 &
+                                                aggr_bias_noL_Performance_emission_3st$n == 120 &
+                                               ( aggr_bias_noL_Performance_emission_3st$n_t == 200 |
+                                                aggr_bias_noL_Performance_emission_3st$n_t == 400)),]
+aggr_bias_noL_Performance_emission_3st <- aggr_bias_noL_Performance_emission_3st[-which(aggr_bias_noL_Performance_emission_3st$KL_div == 5 &
+                                                                                          aggr_bias_noL_Performance_emission_3st$n_dep == 2 &
+                                                                                          aggr_bias_noL_Performance_emission_3st$n == 60 &
+                                                                                          ( aggr_bias_noL_Performance_emission_3st$n_t == 200 |
+                                                                                              aggr_bias_noL_Performance_emission_3st$n_t == 400|
+                                                                                              aggr_bias_noL_Performance_emission_3st$n_t == 800)),]
 
-mean(aggr_Label_switch_proxy_3st$present[aggr_Label_switch_proxy_3st$KL_div == 3])
-mean(aggr_Label_switch_proxy_3st$present[aggr_Label_switch_proxy_3st$KL_div == 7])
-
-mean(aggr_Label_switch_proxy_3st$present[aggr_Label_switch_proxy_3st$KL_div == 5 & aggr_Label_switch_proxy_3st$n_dep == 8])
 
 
-aggr_label2 <- aggregate(aggr_Label_switch_proxy_3st, by = list(aggr_Label_switch_proxy_3st$KL_div, 
-                                                                aggr_Label_switch_proxy_3st$n_dep, 
-                                                                aggr_Label_switch_proxy_3st$n_t, 
-                                                                aggr_Label_switch_proxy_3st$n), FUN = mean)
+View(aggr_bias_noL_Performance_emission_3st)
+
+mean(aggr_bias_noL_Performance_emission_3st$abs_rel_bias)
+mean(aggr_bias_noL_Performance_emission_3st$abs_rel_bias[aggr_bias_noL_Performance_emission_3st$KL_div == 5])
+mean(aggr_bias_noL_Performance_emission_3st$abs_rel_bias[aggr_bias_noL_Performance_emission_3st$KL_div == 7])
+
+mean(aggr_bias_noL_Performance_emission_3st$abs_rel_bias[aggr_bias_noL_Performance_emission_3st$n_dep == 2])
+mean(aggr_bias_noL_Performance_emission_3st$abs_rel_bias[aggr_bias_noL_Performance_emission_3st$n_dep == 4])
+mean(aggr_bias_noL_Performance_emission_3st$abs_rel_bias[aggr_bias_noL_Performance_emission_3st$n_dep == 8])
+
+mean(aggr_bias_noL_Performance_emission_3st$abs_rel_bias[aggr_bias_noL_Performance_emission_3st$n == 15])
+mean(aggr_bias_noL_Performance_emission_3st$abs_rel_bias[aggr_bias_noL_Performance_emission_3st$n == 30])
+mean(aggr_bias_noL_Performance_emission_3st$abs_rel_bias[aggr_bias_noL_Performance_emission_3st$n == 60])
+mean(aggr_bias_noL_Performance_emission_3st$abs_rel_bias[aggr_bias_noL_Performance_emission_3st$n == 120])
+
+
+ggplot(data = aggr_bias_noL_Performance_emission_3st, mapping = aes(x = n_t, y = abs_rel_bias, group = as.factor(n), color = as.factor(n))) +
+  geom_point() + 
+  geom_line() +
+  ylab("Bias emission means") + 
+  scale_color_discrete(name = "Number of\nsubjects") +
+  scale_x_continuous(trans='log2', breaks = c(50, 100, 200, 400, 800)) +
+  facet_grid(rows = vars(as.factor(KL_div)), cols = vars(as.factor(n_dep))) +
+  xlab("number of observations per subject") +
+  geom_hline(yintercept=c(.10), linetype="dashed", color = "grey") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust= 0.5))
+
+
+ggplot(data = aggr_bias_noL_Performance_emission_3st, mapping = aes(x = n_t, y = abs_rel_bias, group = as.factor(n), color = as.factor(n))) +
+  geom_point() + 
+  geom_line() +
+  ylab("Bias emission means") + 
+  scale_color_discrete(name = "Number of\nsubjects") +
+  scale_x_continuous(trans='log2', breaks = c(50, 100, 200, 400, 800)) +
+  facet_grid(rows = vars(as.factor(KL_div)), cols = vars(as.factor(n_dep))) +
+  xlab("number of observations per subject") +
+  geom_hline(yintercept=c(.10), linetype="dashed", color = "grey") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust= 0.5))
+
+#### inspecting relative bias for gaussian emission SDs ####
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias)
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$KL_div == 5])
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$KL_div == 7])
+
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$n_dep == 2])
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$n_dep == 4])
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$n_dep == 8])
+
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$n == 15])
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$n == 30])
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$n == 60])
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$n == 120])
+
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$n_t == 50])
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$n_t == 100])
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$n_t == 200])
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$n_t == 400])
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$n_t == 800])
+
+mean(aggr_bias_noL_Performance_emission_3st$SD_rel_bias[aggr_bias_noL_Performance_emission_3st$KL_div == 5 & 
+                                                          aggr_bias_noL_Performance_emission_3st$n_dep == 2 &
+                                                          aggr_bias_noL_Performance_emission_3st$n != 15])
+
+
+
+#### inspecting precision for gaussian emission SDs ####
+aggr_precision_noL_Performance_emission_3st <- aggregate(bias_noL_Performance_emission_3st, by = list(bias_noL_Performance_emission_3st$KL_div, 
+                                                                                                 bias_noL_Performance_emission_3st$n_dep, 
+                                                                                                 bias_noL_Performance_emission_3st$n_t, 
+                                                                                                 bias_noL_Performance_emission_3st$n), FUN = var)
+
+
+aggr_precision_noL_Performance_emission_3st <- aggr_precision_noL_Performance_emission_3st[-which(aggr_precision_noL_Performance_emission_3st$Group.1 == 5 &
+                                                                                                    aggr_precision_noL_Performance_emission_3st$Group.2 == 2 &
+                                                                                                    aggr_precision_noL_Performance_emission_3st$Group.4 == 120 &
+                                                                                          ( aggr_precision_noL_Performance_emission_3st$Group.3 == 200 |
+                                                                                              aggr_precision_noL_Performance_emission_3st$Group.3 == 400)),]
+
+aggr_precision_noL_Performance_emission_3st$SD_precision <- sqrt(aggr_precision_noL_Performance_emission_3st$SD_hat)
+
+
+mean(aggr_precision_noL_Performance_emission_3st$SD_precision)
+
+max(aggr_precision_noL_Performance_emission_3st$SD_precision[aggr_precision_noL_Performance_emission_3st$Group.2 == 2 &
+                                                               aggr_precision_noL_Performance_emission_3st$Group.1 == 5] )
+max(aggr_precision_noL_Performance_emission_3st$SD_precision[aggr_precision_noL_Performance_emission_3st$Group.2 == 4&
+                                                               aggr_precision_noL_Performance_emission_3st$Group.1 == 5])
+max(aggr_precision_noL_Performance_emission_3st$SD_precision[aggr_precision_noL_Performance_emission_3st$Group.2 == 8&
+                                                               aggr_precision_noL_Performance_emission_3st$Group.1 == 5])
+
+max(aggr_precision_noL_Performance_emission_3st$SD_precision[aggr_precision_noL_Performance_emission_3st$Group.2 == 2 &
+                                                               aggr_precision_noL_Performance_emission_3st$Group.1 == 7] )
+max(aggr_precision_noL_Performance_emission_3st$SD_precision[aggr_precision_noL_Performance_emission_3st$Group.2 == 4&
+                                                               aggr_precision_noL_Performance_emission_3st$Group.1 == 7])
+max(aggr_precision_noL_Performance_emission_3st$SD_precision[aggr_precision_noL_Performance_emission_3st$Group.2 == 8&
+                                                               aggr_precision_noL_Performance_emission_3st$Group.1 == 7])
 
 ## Transition probabilities ####
 # group_out_3st_gamma_prob <- extracted_results_3st$group_out_3st_gamma_prob
@@ -381,12 +544,64 @@ View(Performance_gamma_3st)
 saveRDS(Performance_gamma_3st, file = "result_tables/Performance_gamma_3st.RDS")
 
 Performance_gamma_3st$rel_bias <- (Performance_gamma_3st$gamma_ij_hat - Performance_gamma_3st$gamma_ij_true) / Performance_gamma_3st$gamma_ij_true
+Performance_gamma_3st$mean_bias <- (Performance_gamma_3st$gamma_ij_hat - Performance_gamma_3st$gamma_ij_true) 
 Performance_gamma_3st$Diag <- Performance_gamma_3st$from_state_i == Performance_gamma_3st$to_state_j * 1
 
-summary <- aggregate(Performance_gamma_3st, by = list(Performance_gamma_3st$Diag, Performance_gamma_3st$n_dep, Performance_gamma_3st$KL_div, Performance_gamma_3st$n_t, Performance_gamma_3st$n), FUN = mean)
+bias_noL_Performance_gamma_3st <- Performance_gamma_3st[order(
+  Performance_gamma_3st$KL_div, 
+  Performance_gamma_3st$n_dep, 
+  Performance_gamma_3st$n_t, 
+  Performance_gamma_3st$n,
+  Performance_gamma_3st$sim_iteration,
+  Performance_gamma_3st$from_state_i,
+  Performance_gamma_3st$to_state_j
+  
+),]
+
+bias_noL_Performance_gamma_3st$RMSE <- rep(order_aggr_Label_switch_proxy_3st$RMSE, 
+                                              each = true_m * true_m)
+
+bias_noL_Performance_gamma_3st <- bias_noL_Performance_gamma_3st[bias_noL_Performance_gamma_3st$RMSE > 0.20 & 
+                                                                   bias_noL_Performance_gamma_3st$KL_div > 3,]
+
+
+#### inspecting bias in transition probs ####
+bias_noL_summary <- aggregate(bias_noL_Performance_gamma_3st, by = list(bias_noL_Performance_gamma_3st$Diag, 
+                                                                        bias_noL_Performance_gamma_3st$n_dep, 
+                                                                        bias_noL_Performance_gamma_3st$KL_div, 
+                                                                        bias_noL_Performance_gamma_3st$n_t,
+                                                                        bias_noL_Performance_gamma_3st$n), FUN = mean)
+
+bias_noL_summary <- bias_noL_summary[-which(bias_noL_summary$KL_div == 5 &
+                                              bias_noL_summary$n_dep == 2 &
+                                              bias_noL_summary$n == 120 &
+                                              ( bias_noL_summary$n_t == 200 |
+                                                  bias_noL_summary$n_t == 400)),]
+
+
+View(bias_noL_summary)
+mean(bias_noL_summary$mean_bias[bias_noL_summary$Diag == 1])
+mean(bias_noL_summary$mean_bias[bias_noL_summary$Diag == 0])
+mean(bias_noL_summary$mean_bias[bias_noL_summary$Diag == 1 & bias_noL_summary$KL_div == 5 & bias_noL_summary$n_dep == 2])
+mean(bias_noL_summary$mean_bias[bias_noL_summary$Diag == 0 & bias_noL_summary$KL_div == 5 & bias_noL_summary$n_dep == 2])
+
+mean(bias_noL_summary$mean_bias[bias_noL_summary$Diag == 1 & bias_noL_summary$KL_div != 5 & bias_noL_summary$n_dep != 2])
+mean(bias_noL_summary$mean_bias[bias_noL_summary$Diag == 0 & bias_noL_summary$KL_div != 5 & bias_noL_summary$n_dep != 2])
+
+mean(bias_noL_summary$mean_bias[bias_noL_summary$Diag == 1 & bias_noL_summary$KL_div == 7])
+mean(bias_noL_summary$mean_bias[bias_noL_summary$Diag == 0 & bias_noL_summary$KL_div == 7])
+
+
+
+
+summary <- aggregate(Performance_gamma_3st, by = list(Performance_gamma_3st$Diag, 
+                                                      Performance_gamma_3st$n_dep, 
+                                                      Performance_gamma_3st$KL_div, 
+                                                      Performance_gamma_3st$n_t, 
+                                                      Performance_gamma_3st$n), FUN = mean)
 View(summary)
 
-ggplot(data = summary, mapping = aes(x = n_t, y = rel_bias, group = interaction(as.factor(n), as.factor(Diag)), color = as.factor(n))) +
+ggplot(data = bias_noL_summary, mapping = aes(x = n_t, y = mean_bias, group = interaction(as.factor(n), as.factor(Diag)), color = as.factor(n))) +
   # geom_line(stat = "summary", fun = "mean") + 
   geom_point() + 
   ylab("median relative bias") +
@@ -399,8 +614,229 @@ ggplot(data = summary, mapping = aes(x = n_t, y = rel_bias, group = interaction(
   # scale_linetype(name = "Transition type", values=c("Self-transition" = 'bias_dag',"Between state transition" = 'bias_off_diag')) +
   scale_x_continuous(trans='log2', breaks = c(50, 100, 200, 400, 800)) +
   geom_hline(yintercept=0, linetype="solid", color = "grey") +
-  geom_hline(yintercept=c(-0.1, 0.1), linetype="dashed", color = "grey") +
+  geom_hline(yintercept=c(-0.04, 0.04), linetype="dashed", color = "grey") +
   xlab("number of observations per subject") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust= 0.5))
+
+
+#### inspecting precision in transtion probs ####
+
+
+precision_noL_summary <- aggregate(bias_noL_Performance_gamma_3st, by = list(bias_noL_Performance_gamma_3st$Diag, 
+                                                                        bias_noL_Performance_gamma_3st$n_dep, 
+                                                                        bias_noL_Performance_gamma_3st$KL_div, 
+                                                                        bias_noL_Performance_gamma_3st$n_t,
+                                                                        bias_noL_Performance_gamma_3st$n,
+                                                                        bias_noL_Performance_gamma_3st$from_state_i,
+                                                                        bias_noL_Performance_gamma_3st$to_state_j), FUN = var)
+
+precision_noL_summary <- precision_noL_summary[-which(precision_noL_summary$Group.3 == 5 &
+                                                   precision_noL_summary$Group.2 == 2 &
+                                                   precision_noL_summary$Group.5 == 120 &
+                                              ( precision_noL_summary$Group.4 == 200 |
+                                                  precision_noL_summary$Group.4 == 400)),]
+
+
+precision_noL_summary$precision <- sqrt(precision_noL_summary$gamma_ij_hat)
+
+
+mean(precision_noL_summary$precision)
+mean(precision_noL_summary$precision[precision_noL_summary$Group.1 == 1 & 
+                                       precision_noL_summary$Group.4 == 50])
+mean(precision_noL_summary$precision[precision_noL_summary$Group.1 == 1 & 
+                                       precision_noL_summary$Group.4 == 800])
+
+
+mean(precision_noL_summary$precision[precision_noL_summary$Group.1 == 0 & 
+                                       precision_noL_summary$Group.4 == 50])
+mean(precision_noL_summary$precision[precision_noL_summary$Group.1 == 0 & 
+                                       precision_noL_summary$Group.4 == 800])
+
+mean(precision_noL_summary$precision[precision_noL_summary$Group.1 == 1 & 
+                                       precision_noL_summary$Group.5 == 15])
+mean(precision_noL_summary$precision[precision_noL_summary$Group.1 == 1 & 
+                                       precision_noL_summary$Group.5 == 120])
+
+
+mean(precision_noL_summary$precision[precision_noL_summary$Group.1 == 0 & 
+                                       precision_noL_summary$Group.5 == 15])
+mean(precision_noL_summary$precision[precision_noL_summary$Group.1 == 0 & 
+                                       precision_noL_summary$Group.5 == 120])
+
+
+## Coverage ####
+
+#### EMission means ####
+
+cov_noL_Performance_emission_3st <- bias_noL_Performance_emission_3st
+cov_noL_Performance_emission_3st$cov_mean <- (cov_noL_Performance_emission_3st$mean_true > cov_noL_Performance_emission_3st$mean_95_lower &
+  cov_noL_Performance_emission_3st$mean_true < cov_noL_Performance_emission_3st$mean_95_upper) * 1 
+
+cov_noL_Performance_emission_3st$cov_SD <- (cov_noL_Performance_emission_3st$SD_true > cov_noL_Performance_emission_3st$SD_95_lower &
+                                                cov_noL_Performance_emission_3st$SD_true < cov_noL_Performance_emission_3st$SD_95_upper) * 1 
+
+cov_noL_Performance_emission_3st$cov_SD_width <- (cov_noL_Performance_emission_3st$SD_95_upper - cov_noL_Performance_emission_3st$SD_95_lower)
+
+
+aggr_cov_noL_Performance_emission_3st <- aggregate(cov_noL_Performance_emission_3st, by = list(cov_noL_Performance_emission_3st$KL_div, 
+                                                                                               cov_noL_Performance_emission_3st$n_dep, 
+                                                                                               cov_noL_Performance_emission_3st$n_t, 
+                                                                                               cov_noL_Performance_emission_3st$n), FUN = mean)
+
+aggr_cov_noL_Performance_emission_3st <- aggr_cov_noL_Performance_emission_3st[-which(aggr_cov_noL_Performance_emission_3st$KL_div == 5 &
+                                                                                        aggr_cov_noL_Performance_emission_3st$n_dep == 2 &
+                                                                                        aggr_cov_noL_Performance_emission_3st$n == 120 &
+                                                        ( aggr_cov_noL_Performance_emission_3st$n_t == 200 |
+                                                            aggr_cov_noL_Performance_emission_3st$n_t == 400)),]
+
+
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean)
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$KL_div == 5])
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_bias_noL_Performance_emission_3st$KL_div == 7])
+
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$n_dep == 2 &
+                                                      aggr_cov_noL_Performance_emission_3st$KL_div == 5])
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$n_dep == 4 &
+                                                      aggr_cov_noL_Performance_emission_3st$KL_div == 5])
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$n_dep == 8 &
+                                                      aggr_cov_noL_Performance_emission_3st$KL_div == 5])
+
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$n_dep == 2 &
+                                                      aggr_cov_noL_Performance_emission_3st$KL_div == 7])
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$n_dep == 4 &
+                                                      aggr_cov_noL_Performance_emission_3st$KL_div == 7])
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$n_dep == 8 &
+                                                      aggr_cov_noL_Performance_emission_3st$KL_div == 7])
+
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$n == 15])
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$n == 30])
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$n == 60])
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$n == 120])
+
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$n_t == 50 &
+                                                      aggr_cov_noL_Performance_emission_3st$n_dep == 2])
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$n_t == 100 &
+                                                      aggr_cov_noL_Performance_emission_3st$n_dep == 2])
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[aggr_cov_noL_Performance_emission_3st$n_t == 200 &
+                                                      aggr_cov_noL_Performance_emission_3st$n_dep == 2])
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[(aggr_cov_noL_Performance_emission_3st$n_t == 400 &
+                                                      aggr_cov_noL_Performance_emission_3st$n_dep == 2)])
+mean(aggr_cov_noL_Performance_emission_3st$cov_mean[(aggr_cov_noL_Performance_emission_3st$n_t == 800 &
+                                                       aggr_cov_noL_Performance_emission_3st$n_dep == 2)])
+
+
+ggplot(data = aggr_cov_noL_Performance_emission_3st, mapping = aes(x = n_t, y = cov_mean, group = as.factor(n), color = as.factor(n))) +
+  geom_point() + 
+  geom_line() +
+  ylab("Coverage emission distribution") + 
+  scale_color_discrete(name = "Number of\nsubjects") +
+  scale_x_continuous(trans='log2', breaks = c(50, 100, 200, 400, 800)) +
+  facet_grid(rows = vars(as.factor(KL_div)), cols = vars(as.factor(n_dep))) +
+  xlab("number of observations per subject") +
+  geom_hline(yintercept=c(.90, .95), linetype="dashed", color = "grey") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust= 0.5))
+
+#### Emission SDs ####
+
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD)
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$KL_div == 5])
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_bias_noL_Performance_emission_3st$KL_div == 7])
+
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$n_dep == 2 &
+                                                      aggr_cov_noL_Performance_emission_3st$KL_div == 5])
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$n_dep == 4 &
+                                                      aggr_cov_noL_Performance_emission_3st$KL_div == 5])
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$n_dep == 8 &
+                                                      aggr_cov_noL_Performance_emission_3st$KL_div == 5])
+
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$n_dep == 2 &
+                                                      aggr_cov_noL_Performance_emission_3st$KL_div == 7])
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$n_dep == 4 &
+                                                      aggr_cov_noL_Performance_emission_3st$KL_div == 7])
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$n_dep == 8 &
+                                                      aggr_cov_noL_Performance_emission_3st$KL_div == 7])
+
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$n == 15])
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$n == 30])
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$n == 60])
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$n == 120])
+
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$n_t == 50 &
+                                                      aggr_cov_noL_Performance_emission_3st$n_dep == 2])
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$n_t == 100 &
+                                                      aggr_cov_noL_Performance_emission_3st$n_dep == 2])
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[aggr_cov_noL_Performance_emission_3st$n_t == 200 &
+                                                      aggr_cov_noL_Performance_emission_3st$n_dep == 2])
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD[(aggr_cov_noL_Performance_emission_3st$n_t == 400 &
+                                                       aggr_cov_noL_Performance_emission_3st$n_dep == 2)])
+
+
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD_width[aggr_cov_noL_Performance_emission_3st$n_t == 50])
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD_width[aggr_cov_noL_Performance_emission_3st$n_t == 800])
+
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD_width[aggr_cov_noL_Performance_emission_3st$n == 15])
+mean(aggr_cov_noL_Performance_emission_3st$cov_SD_width[aggr_cov_noL_Performance_emission_3st$n == 120])
+
+ggplot(data = aggr_cov_noL_Performance_emission_3st, mapping = aes(x = n_t, y = cov_SD, group = as.factor(n), color = as.factor(n))) +
+  geom_point() + 
+  geom_line() +
+  ylab("Coverage emission distribution") + 
+  scale_color_discrete(name = "Number of\nsubjects") +
+  scale_x_continuous(trans='log2', breaks = c(50, 100, 200, 400, 800)) +
+  facet_grid(rows = vars(as.factor(KL_div)), cols = vars(as.factor(n_dep))) +
+  xlab("number of observations per subject") +
+  geom_hline(yintercept=c(.90, .95), linetype="dashed", color = "grey") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust= 0.5))
+
+
+#### Transition probs ####
+cov_noL_Performance_gamma_3st <- bias_noL_Performance_gamma_3st 
+cov_noL_Performance_gamma_3st$cov_trans <- (cov_noL_Performance_gamma_3st$gamma_ij_true > cov_noL_Performance_gamma_3st$gamma_ij_95_lower &
+                                              cov_noL_Performance_gamma_3st$gamma_ij_true < cov_noL_Performance_gamma_3st$gamma_ij_95_upper) * 1 
+
+
+#### inspecting bias in transition probs ####
+cov_noL_summary <- aggregate(cov_noL_Performance_gamma_3st, by = list(cov_noL_Performance_gamma_3st$Diag, 
+                                                                      cov_noL_Performance_gamma_3st$n_dep, 
+                                                                      cov_noL_Performance_gamma_3st$KL_div, 
+                                                                      cov_noL_Performance_gamma_3st$n_t,
+                                                                      cov_noL_Performance_gamma_3st$n), FUN = mean)
+
+cov_noL_summary <- cov_noL_summary[-which(cov_noL_summary$KL_div == 5 &
+                                            cov_noL_summary$n_dep == 2 &
+                                            cov_noL_summary$n == 120 &
+                                              ( cov_noL_summary$n_t == 200 |
+                                                  cov_noL_summary$n_t == 400)),]
+
+
+mean(cov_noL_summary$cov_trans)
+mean(cov_noL_summary$cov_trans[cov_noL_summary$Diag == TRUE])
+mean(cov_noL_summary$cov_trans[cov_noL_summary$Diag == FALSE])
+
+ggplot(data = cov_noL_summary[cov_noL_summary$Diag == TRUE,], mapping = aes(x = n_t, y = cov_trans, group = as.factor(n), color = as.factor(n))) +
+  geom_point() + 
+  geom_line() +
+  ylab("Coverage emission distribution") + 
+  scale_color_discrete(name = "Number of\nsubjects") +
+  scale_x_continuous(trans='log2', breaks = c(50, 100, 200, 400, 800)) +
+  facet_grid(rows = vars(as.factor(KL_div)), cols = vars(as.factor(n_dep))) +
+  xlab("number of observations per subject") +
+  geom_hline(yintercept=c(.90, .95), linetype="dashed", color = "grey") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust= 0.5))
+
+ggplot(data = cov_noL_summary[cov_noL_summary$Diag == FALSE,], mapping = aes(x = n_t, y = cov_trans, group = as.factor(n), color = as.factor(n))) +
+  geom_point() + 
+  geom_line() +
+  ylab("Coverage emission distribution") + 
+  scale_color_discrete(name = "Number of\nsubjects") +
+  scale_x_continuous(trans='log2', breaks = c(50, 100, 200, 400, 800)) +
+  facet_grid(rows = vars(as.factor(KL_div)), cols = vars(as.factor(n_dep))) +
+  xlab("number of observations per subject") +
+  geom_hline(yintercept=c(.90, .95), linetype="dashed", color = "grey") +
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust= 0.5))
 
@@ -440,4 +876,100 @@ View(State_decoding_3st)
 
 saveRDS(State_decoding_3st, file = "result_tables/State_decoding_3st.RDS")
 
+
+
+decoding_noL_3st <- State_decoding_3st[order(
+  State_decoding_3st$KL_div, 
+  State_decoding_3st$n_dep, 
+  State_decoding_3st$n_t, 
+  State_decoding_3st$n,
+  State_decoding_3st$sim_iteration
+),]
+
+decoding_noL_3st$RMSE <- order_aggr_Label_switch_proxy_3st$RMSE
+
+decoding_noL_3st <- decoding_noL_3st[decoding_noL_3st$RMSE > 0.20 & 
+                                       decoding_noL_3st$KL_div > 3,]
+
+#### inspecting absolute relative bias for gaussian emission means ####
+aggr_decoding_noL_3st <- aggregate(decoding_noL_3st, by = list(decoding_noL_3st$KL_div, 
+                                                               decoding_noL_3st$n_dep, 
+                                                               decoding_noL_3st$n_t, 
+                                                               decoding_noL_3st$n), FUN = mean)
+
+
+aggr_decoding_noL_3st <- aggr_decoding_noL_3st[-which(aggr_decoding_noL_3st$KL_div == 5 &
+                                                        aggr_decoding_noL_3st$n_dep == 2 &
+                                                        aggr_decoding_noL_3st$n == 120 &
+                                                                                          ( aggr_decoding_noL_3st$n_t == 200 |
+                                                                                              aggr_decoding_noL_3st$n_t == 400)),]
+
+
+mean(aggr_decoding_noL_3st$mean_prop_correct)
+min(aggr_decoding_noL_3st$mean_prop_correct)
+max(aggr_decoding_noL_3st$mean_prop_correct)
+
+mean(aggr_decoding_noL_3st$mean_kappa)
+min(aggr_decoding_noL_3st$mean_kappa)
+max(aggr_decoding_noL_3st$mean_kappa)
+
+sum(aggr_decoding_noL_3st$mean_kappa >= 0.80) / dim(aggr_decoding_noL_3st)[1]
+
+mean(aggr_decoding_noL_3st$mean_kappa[aggr_decoding_noL_3st$n_dep == 2 &
+                                    aggr_decoding_noL_3st$KL_div == 5])
+mean(aggr_decoding_noL_3st$mean_kappa[aggr_decoding_noL_3st$n_dep == 4 &
+                                    aggr_decoding_noL_3st$KL_div == 5])
+mean(aggr_decoding_noL_3st$mean_kappa[aggr_decoding_noL_3st$n_dep == 8 &
+                                    aggr_decoding_noL_3st$KL_div == 5])
+
+mean(aggr_decoding_noL_3st$mean_kappa[aggr_decoding_noL_3st$n_dep == 2 &
+                                    aggr_decoding_noL_3st$KL_div == 7])
+mean(aggr_decoding_noL_3st$mean_kappa[aggr_decoding_noL_3st$n_dep == 4 &
+                                    aggr_decoding_noL_3st$KL_div == 7])
+mean(aggr_decoding_noL_3st$mean_kappa[aggr_decoding_noL_3st$n_dep == 8 &
+                                    aggr_decoding_noL_3st$KL_div == 7])
+
+
+mean(aggr_decoding_noL_3st$mean_kappa[aggr_decoding_noL_3st$n_t == 50 &
+                                    aggr_decoding_noL_3st$n_dep == 2])
+mean(aggr_decoding_noL_3st$mean_kappa[aggr_decoding_noL_3st$n_t == 100 &
+                                    aggr_decoding_noL_3st$n_dep == 2])
+mean(aggr_decoding_noL_3st$mean_kappa[aggr_decoding_noL_3st$n_t == 200 &
+                                    aggr_decoding_noL_3st$n_dep == 2])
+mean(aggr_decoding_noL_3st$mean_kappa[(aggr_decoding_noL_3st$n_t == 400 &
+                                     aggr_decoding_noL_3st$n_dep == 2)])
+mean(aggr_decoding_noL_3st$mean_kappa[(aggr_decoding_noL_3st$n_t == 800 &
+                                     aggr_decoding_noL_3st$n_dep == 2)])
+
+mean(aggr_decoding_noL_3st$mean_kappa[aggr_decoding_noL_3st$n == 15 &
+                                        aggr_decoding_noL_3st$n_dep == 2])
+mean(aggr_decoding_noL_3st$mean_kappa[aggr_decoding_noL_3st$n == 30 &
+                                        aggr_decoding_noL_3st$n_dep == 2])
+mean(aggr_decoding_noL_3st$mean_kappa[aggr_decoding_noL_3st$n == 60 &
+                                        aggr_decoding_noL_3st$n_dep == 2])
+mean(aggr_decoding_noL_3st$mean_kappa[(aggr_decoding_noL_3st$n == 120 &
+                                         aggr_decoding_noL_3st$n_dep == 2)])
+
+
+ggplot(data = aggr_decoding_noL_3st, mapping = aes(x = n_t, y = mean_prop_correct, group = as.factor(n), color = as.factor(n))) +
+  geom_point() + 
+  geom_line() +
+  ylab("Accuracy") + 
+  scale_color_discrete(name = "Number of\nsubjects") +
+  scale_x_continuous(trans='log2', breaks = c(50, 100, 200, 400, 800)) +
+  facet_grid(rows = vars(as.factor(KL_div)), cols = vars(as.factor(n_dep))) +
+  xlab("number of observations per subject") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust= 0.5))
+
+ggplot(data = aggr_decoding_noL_3st, mapping = aes(x = n_t, y = mean_kappa, group = as.factor(n), color = as.factor(n))) +
+  geom_point() + 
+  geom_line() +
+  ylab("Kappa") + 
+  scale_color_discrete(name = "Number of\nsubjects") +
+  scale_x_continuous(trans='log2', breaks = c(50, 100, 200, 400, 800)) +
+  facet_grid(rows = vars(as.factor(KL_div)), cols = vars(as.factor(n_dep))) +
+  xlab("number of observations per subject") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, vjust = 0.5, hjust= 0.5))
 
