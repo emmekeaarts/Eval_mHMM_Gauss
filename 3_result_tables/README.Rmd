@@ -25,11 +25,11 @@ Each of the matrices starts with the following columns:
 
 - true_m: true number of states in the used scenario,
 - n: number of subjects in the used scenario (possible values: 15, 30, 60, 120)
-- n_t: number of obervations per subject in the used scenario (possible values: 50, 100, 200, 400, 800)
+- n_t: number of observations per subject in the used scenario (possible values: 50, 100, 200, 400, 800)
 - n_dep: number of dependent variables used in the scenario (possible values: 2, 4, 8)
 - KL_div: KL divergence in the used in the scenario (possible values: 3, 5, 7)
 
-Note: for the scenarios pertaining to a true number of states = 1, the elements `gamma_performance_1st` and `state_decoding_1st` are omitted as they are obsolete. In additon, for the emission distribution performance, information on the label switching problem is omitted. 
+Note: for the scenarios pertaining to a true number of states = 1, the elements `gamma_performance_1st` and `state_decoding_1st` are omitted as they are obsolete. In addition, for the emission distribution performance, information on the label switching problem is omitted. 
 
 ### Model selection
 

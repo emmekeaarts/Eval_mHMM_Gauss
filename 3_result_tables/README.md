@@ -22,7 +22,7 @@ Each of the matrices starts with the following columns:
 - true_m: true number of states in the used scenario,
 - n: number of subjects in the used scenario (possible values: 15, 30,
   60, 120)
-- n_t: number of obervations per subject in the used scenario (possible
+- n_t: number of observations per subject in the used scenario (possible
   values: 50, 100, 200, 400, 800)
 - n_dep: number of dependent variables used in the scenario (possible
   values: 2, 4, 8)
