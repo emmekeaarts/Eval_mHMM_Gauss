@@ -363,6 +363,40 @@ Haslbeck, J. M. B. (2025, July 16). Modeling Psychological Time Series
 with Multilevel Hidden Markov Models: A Numerical Evaluation. Doi:
 10.31234/osf.io/b5mxk_v2</a></p>
 <p>This repository contains the following files and folders:</p>
+<ul>
+<li><code>1_Sim_files_cluster</code> contains the files to generate 100
+independent intensive longitudinal datasets from the multilevel HMM for
+each simulation scenario with given number of states M, pairwise DKL,
+and number of variables, persons, and time points, using the R-package
+<code>mHMMbayes</code>. Within the same files, we fit a 1-, 2-, 3-, and
+4-state multilevel HMM with the R-package <code>mHMMbayes</code>. Files
+with <code>p2_</code> and <code>p4_</code>in the name pertain to code
+for scenarios that were run in 2 or 4 parts in the cluster to save
+computation time. Files that contain <code>_conv</code> in the file name
+pertain to code to run extra chains to inspect convergence for a subset
+of the 100 simulation iterations. For varying <em>true</em> number of
+states, separate generating files are used. Varying the pairwise DKL,
+and number of variables, persons, and time points is done by reading
+line by line from the file <code>sim_scenarios_V4.csv</code>, where the
+columns contain the number of persons <span class="math inline">\(n\)</span>, the number of time points <span class="math inline">\(n_t\)</span>,the number of variables <span class="math inline">\(ndep\)</span>, and the pairwise DKL <span class="math inline">\(KLD\)</span>.</li>
+<li><code>2_Post-processing</code> The files
+<code>Post-processing j style *st.R</code> (where * takes on
+<code>1st</code>, <code>2st</code>, or <code>3st</code>) contain the
+code to process the raw output simulation result files from the cluster
+into <code>extracted_results_*st.RDS</code> (step 1; where * takes on
+<code>1st</code>, <code>2st</code>, or <code>3st</code>), and further
+convert these into files containing the relevant performance metrics
+only, which are stored in the folder <code>3_results_tables</code></li>
+<li><code>3_results_tables</code> Contains files storing the relevant
+performance metrics for each simulation scenario and simulation run. See
+the readme file in this folder for details.</li>
+</ul>
+<p>Note that due to the very large size of the output files of the
+simulation study, the raw output files, and partly processed raw output
+files (<code>extracted_results_ st.RDS</code>,
+<code>extracted_convergence_ st.RDS</code>, and
+<code>Convergence_GMStat.RDS</code>) are not included in this
+repository.</p>
 </div>
 
 
