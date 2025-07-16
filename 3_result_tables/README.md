@@ -31,7 +31,7 @@ Each of the matrices starts with the following columns:
 
 Note: for the scenarios pertaining to a true number of states = 1, the
 elements `gamma_performance_1st` and `state_decoding_1st` are omitted as
-they are obsolete. In additon, for the emission distribution
+they are obsolete. In addition, for the emission distribution
 performance, information on the label switching problem is omitted.
 
 ### Model selection
