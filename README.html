@@ -390,12 +390,26 @@ only, which are stored in the folder <code>3_results_tables</code></li>
 <li><code>3_results_tables</code> Contains files storing the relevant
 performance metrics for each simulation scenario and simulation run. See
 the readme file in this folder for details.</li>
+<li><code>4_plotting results</code> Contains the code used to visualize
+the simulation results using the processed output in the folder
+<code>3_results_tables</code>.</li>
+<li><code>5_explore_KLD</code> Contains the code used to calculate the
+pairwise KLDs for the empirical datasets and visualize (contained in
+supplement of the paper)</li>
+<li><code>6_Sensitivity</code> Contains the the files related to the
+sensitivity analysis to the specification of hyper-prior parameters.
+This includes the files used to generate 100 independent intensive
+longitudinal datasets, post processing files from the raw output
+simulation result files from the cluster, and files storing the relevant
+performance metrics for each simulation scenario and simulation
+run.</li>
 </ul>
 <p>Note that due to the very large size of the output files of the
 simulation study, the raw output files, and partly processed raw output
-files (<code>extracted_results_ st.RDS</code>,
-<code>extracted_convergence_ st.RDS</code>, and
-<code>Convergence_GMStat.RDS</code>) are not included in this
+files (<code>extracted_results_*st.RDS</code>,
+<code>extracted_convergence_*st.RDS</code>, and
+<code>Convergence_GMStat.RDS</code>; where * takes on <code>1st</code>,
+<code>2st</code>, or <code>3st</code>) are not included in this
 repository.</p>
 </div>
 

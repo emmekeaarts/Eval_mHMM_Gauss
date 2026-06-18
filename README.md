@@ -22,5 +22,8 @@ and the pairwise DKL $KLD$.
 - `3_results_tables` Contains files storing the relevant performance metrics for each simulation scenario and simulation run. See the readme file in this folder for details. 
 - `4_plotting results` Contains the code used to visualize the simulation results using the processed output in the folder `3_results_tables`.
 - `5_explore_KLD` Contains the code used to calculate the pairwise KLDs for the empirical datasets and visualize (contained in supplement of the paper)
+- `6_Sensitivity` Contains the the files related to the sensitivity analysis to the specification of hyper-prior parameters. This includes the 
+files used to generate 100 independent intensive longitudinal datasets, post processing files from the raw output simulation result files from the cluster, and
+files storing the relevant performance metrics for each simulation scenario and simulation run.
 
 Note that due to the very large size of the output files of the simulation study, the raw output files, and partly processed raw output files (`extracted_results_*st.RDS`, `extracted_convergence_*st.RDS`, and `Convergence_GMStat.RDS`; where \* takes on `1st`, `2st`, or `3st`) are not included in this repository. 
