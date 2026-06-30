@@ -3,10 +3,10 @@ library(ggplot2)
 library(reshape2)
 
 # Simulstion settings
-settings_SF <- read.csv("Sensitivity/CoreF_settings.csv") # 25
-settings_SA <- read.csv("Sensitivity/CoreA_settings.csv") # 28
-settings_SB <- read.csv("Sensitivity/CoreB_settings.csv") # 28
-settings_SH <- read.csv("Sensitivity/CoreH_settings.csv") # 31
+settings_SF <- read.csv("6_Sensitivity/CoreF_settings.csv") # 25
+settings_SA <- read.csv("6_Sensitivity/CoreA_settings.csv") # 28
+settings_SB <- read.csv("6_Sensitivity/CoreB_settings.csv") # 28
+settings_SH <- read.csv("6_Sensitivity/CoreH_settings.csv") # 31
 true_m  <- 3
 n_dep   <- 4
 
@@ -82,7 +82,7 @@ names(true_state_probs) <- c(filesF, filesH, filesA)
 names(true_states) <- c(filesF, filesH, filesA)
 
 for(sc in 1:length(filesF)){
-  outF[[sc]] <- readRDS(paste0("Sensitivity/Data/", filesF[sc], ".rds")) 
+  outF[[sc]] <- readRDS(paste0("6_Sensitivity/Data/", filesF[sc], ".rds")) 
   selection_out[[sc]]             <- outF[[sc]]$selection_out
   group_out_3st_emiss_mean[[sc]]  <- outF[[sc]]$group_out_3st$emiss_mean
   group_out_3st_emiss_sd[[sc]]    <- outF[[sc]]$group_out_3st$emiss_sd
@@ -106,7 +106,7 @@ burn_in <- outF[[1]]$input$burn_in
 l_files <- length(filesF)
 
 for(sc in 1:length(filesH)){
-  outH[[sc]] <- readRDS(paste0("Sensitivity/Data/", filesH[sc], ".rds")) 
+  outH[[sc]] <- readRDS(paste0("6_Sensitivity/Data/", filesH[sc], ".rds")) 
   selection_out[[sc + l_files]]             <- outH[[sc]]$selection_out
   group_out_3st_emiss_mean[[sc + l_files]]  <- outH[[sc]]$group_out_3st$emiss_mean
   group_out_3st_emiss_sd[[sc + l_files]]    <- outH[[sc]]$group_out_3st$emiss_sd
@@ -126,8 +126,8 @@ for(sc in 1:length(filesH)){
 l_files_AB <- length(c(filesF, filesH))
 
 for(sc in 1:length(filesA)){
-  outA[[sc]] <- readRDS(paste0("Sensitivity/Data/", filesA[sc], ".rds")) 
-  outB[[sc]] <- readRDS(paste0("Sensitivity/Data/", filesB[sc], ".rds")) 
+  outA[[sc]] <- readRDS(paste0("6_Sensitivity/Data/", filesA[sc], ".rds")) 
+  outB[[sc]] <- readRDS(paste0("6_Sensitivity/Data/", filesB[sc], ".rds")) 
   selection_out[[sc + l_files_AB]]                       <- Map(rbind,outA[[sc]]$selection_out, outB[[sc]]$selection_out)
   group_out_3st_emiss_mean[[sc + l_files_AB]]$median     <-  Map(rbind,outA[[sc]]$group_out_3st$emiss_mean$median, outB[[sc]]$group_out_3st$emiss_mean$median)
   group_out_3st_emiss_mean[[sc + l_files_AB]]$quant_2.5  <-  Map(rbind,outA[[sc]]$group_out_3st$emiss_mean$quant_2.5, outB[[sc]]$group_out_3st$emiss_mean$quant_2.5)
@@ -168,7 +168,7 @@ extracted_results_Sensitivity <- list(group_out_3st_emiss_mean = group_out_3st_e
                               n_sim = n_sim, 
                               J = J, 
                               burn_in = burn_in)
-saveRDS(extracted_results_Sensitivity, file = "Sensitivity/Data/extracted_results_Sensitivity.RDS")
+saveRDS(extracted_results_Sensitivity, file = "6_Sensitivity/Data/extracted_results_Sensitivity.RDS")
 
 # extracted_results_Sensitivity <- readRDS("Extracted_results/extracted_results_Sensitivity.RDS")
 
@@ -206,8 +206,8 @@ for(sc in c(1:84)){ # as we only still have core fast
 
 View(Label_switch_proxy_Sensitivity)
 
-saveRDS(Label_switch_proxy_Sensitivity, file = "Sensitivity/Data/Label_switch_proxy_Sensitivity.RDS")
-# Label_switch_proxy_Sensitivity <- readRDS("Sensitivity/Data/Label_switch_proxy_Sensitivity.RDS")
+saveRDS(Label_switch_proxy_Sensitivity, file = "6_Sensitivity/Data/Label_switch_proxy_Sensitivity.RDS")
+# Label_switch_proxy_Sensitivity <- readRDS("6_Sensitivity/Data/Label_switch_proxy_Sensitivity.RDS")
 
 aggr_Label_switch_proxy_Sensitivity <- aggregate(Label_switch_proxy_Sensitivity, by = list(Label_switch_proxy_Sensitivity$sim_iteration, Label_switch_proxy_Sensitivity$var_tau_sig,
                                                                                           Label_switch_proxy_Sensitivity$trans_K0_sc, Label_switch_proxy_Sensitivity$trans_unif,
@@ -302,8 +302,10 @@ for(sc in c(1:84)){
 
 View(Performance_emission_Sensitivity)
 
-saveRDS(Performance_emission_Sensitivity, file = "Sensitivity/Data/Performance_emission_Sensitivity.RDS")
-# Performance_emission_Sensitivity <- readRDS(file = "Sensitivity/Data/Performance_emission_Sensitivity.RDS")
+saveRDS(Performance_emission_Sensitivity, file = "6_Sensitivity/Data/Performance_emission_Sensitivity.RDS")
+
+
+# Performance_emission_Sensitivity <- readRDS(file = "6_Sensitivity/result_tables/Performance_emission_Sensitivity.RDS")
 
 
 Performance_emission_Sensitivity$abs_rel_bias <- abs(Performance_emission_Sensitivity$mean_hat - Performance_emission_Sensitivity$mean_true) / abs(Performance_emission_Sensitivity$mean_true)
@@ -514,7 +516,7 @@ for(sc in c(1:84)){
 }
 
 View(Performance_gamma_Sensitivity)
-saveRDS(Performance_gamma_Sensitivity, file = "Sensitivity/Data/Performance_gamma_Sensitivity.RDS")
+saveRDS(Performance_gamma_Sensitivity, file = "6_Sensitivity/Data/Performance_gamma_Sensitivity.RDS")
 
 Performance_gamma_Sensitivity$rel_bias <- (Performance_gamma_Sensitivity$gamma_ij_hat - Performance_gamma_Sensitivity$gamma_ij_true) / Performance_gamma_Sensitivity$gamma_ij_true
 Performance_gamma_Sensitivity$mean_bias <- (Performance_gamma_Sensitivity$gamma_ij_hat - Performance_gamma_Sensitivity$gamma_ij_true) 
@@ -800,7 +802,7 @@ for(sc in c(1:84)){
 
 View(State_decoding_Sensitivity)
 
-saveRDS(State_decoding_Sensitivity, file = "Sensitivity/Data/State_decoding_Sensitivity.RDS")
+saveRDS(State_decoding_Sensitivity, file = "6_Sensitivity/Data/State_decoding_Sensitivity.RDS")
 
 
 decoding_noL_Sensitivity <- State_decoding_Sensitivity[order(

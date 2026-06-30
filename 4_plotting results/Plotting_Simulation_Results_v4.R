@@ -30,19 +30,20 @@ library(xtable)
 library(scales)
 library(colorspace) # color-blind
 
-source("0_Helpers.R")
+source("4_plotting results/0_Helpers.R")
 
 
 # --------------------------------------------------------
-# ---------- Some Global Stuff ---------------------------
+# ---------- Global Simulation Settings ------------------
 # --------------------------------------------------------
 
 Ntvar <- c(50, 100, 200, 400, 800)
 n_Ntvar <- length(Ntvar)
 KLDvar <- c(3, 5, 7)
 
+
 # --------------------------------------------------------
-# ---------- Figure: LabelSwitching Proportion -----------
+# ---------- Figure: Label Switching Proportion ----------
 # --------------------------------------------------------
 
 # -----------------------
@@ -51,7 +52,7 @@ KLDvar <- c(3, 5, 7)
 # We need this to subset on label switching also for the model selection results (acc/bias)
 
 # ----- Load Data -----
-res_lblsw_2st <- readRDS("result_tables/Label_switch_proxy_2st.RDS")
+res_lblsw_2st <- readRDS("3_result_tables/Label_switch_proxy_2st.RDS")
 head(res_lblsw_2st)
 
 # ----- Process -----
@@ -84,7 +85,7 @@ dim(lblsw_bin_hom_90sat_2st)
 # -----------------------
 
 # ----- Load Data -----
-res_lblsw <- readRDS("result_tables/Label_switch_proxy_3st.RDS")
+res_lblsw <- readRDS("3_result_tables/Label_switch_proxy_3st.RDS")
 head(res_lblsw)
 
 # ----- Process -----
@@ -120,7 +121,6 @@ dim(lblsw_bin_hom)
 
 
 # ----- Plot -----
-
 cols <- qualitative_hcl(n = 4, palette = "Dark3")
 
 # Aggregate for Plot
@@ -132,7 +132,7 @@ lblsw_bin_hom_agg_iter[3, 1, 1, 1]
 lblsw_bin_hom_agg_iter[3, 3, 1, 1]
 
 sc <- 0.72
-pdf("Figures/Fig_Res_LabelSwitching_prop_k=3.pdf", width = 8*sc, height = 8*sc*0.95)
+pdf("4_plotting results/Figures/Fig_Res_LabelSwitching_prop_k=3.pdf", width = 8*sc, height = 8*sc*0.95)
 
 PlotSimEmiss(object = lblsw_bin_hom_agg_iter,
              ylim = c(0, 1),
@@ -156,7 +156,7 @@ dim(lblsw_bin_hom_90sat)
 # --------------------------------------------------------
 
 # Load Data
-res_conv_em <- readRDS("result_tables/Convergence_emission_3st_corrected_V2.RDS")
+res_conv_em <- readRDS("3_result_tables/Convergence_emission_3st_corrected_V2.RDS")
 # unique(res_conv$k) # This is the state; of course we have n_dep means PER state
 unique(res_conv_em$sim_rep) # Four estimates of the GR-statistic, from four sim iterations (which themselves are based on I think 4 runs, of which we requite ??? to be not affected by label switching)
 
@@ -184,7 +184,7 @@ conv_GR_em_prop_agg <- apply(conv_GR_em_prop, 1:4, mean, na.rm=TRUE)
 
 # ----- Convergence: Transition Probabilities -----
 # Load Data
-res_conv_trns <- readRDS("result_tables/Convergence_gamma_3st_corrected_V2.RDS")
+res_conv_trns <- readRDS("3_result_tables/Convergence_gamma_3st_corrected_V2.RDS")
 head(res_conv_trns)
 
 # Subset: Need 3 or 4 / 4 iterations, to compute
@@ -211,7 +211,7 @@ dim(conv_GR_trns_agg)
 # --------------------------------------------------------
 
 sc <- 0.85
-pdf("Figures/Fig_Res_Conv_k=3_Emission_GR_NEW_V2.pdf", width = 8*sc, height = 8*sc)
+pdf("4_plotting results/Figures/Fig_Res_Conv_k=3_Emission_GR_NEW_V2.pdf", width = 8*sc, height = 8*sc)
 
 PlotSimEmiss(object = conv_GR_em_agg,
              ylim = c(0.8, 1.6),
@@ -224,7 +224,7 @@ dev.off()
 
 # ----- KLD = 2,3 ------
 sc <- 0.72
-pdf("Figures/Fig_Res_Conv_k=3_Emission_GR_NEW_KLD23_V2.pdf", width = 8*sc, height = 8*sc*(2/3)*0.95)
+pdf("4_plotting results/Figures/Fig_Res_Conv_k=3_Emission_GR_NEW_KLD23_V2.pdf", width = 8*sc, height = 8*sc*(2/3)*0.95)
 
 PlotSimEmiss_KLD23(object = conv_GR_em_agg,
                    ylim = c(0.8, 1.6),
@@ -242,7 +242,7 @@ dev.off()
 # --------------------------------------------------------
 
 sc <- 0.85
-pdf("Figures/Fig_Res_Conv_k=3_Emission_Prop_NEW.pdf", width = 8*sc, height = 8*sc)
+pdf("4_plotting results/Figures/Fig_Res_Conv_k=3_Emission_Prop_NEW.pdf", width = 8*sc, height = 8*sc)
 
 PlotSimEmiss(object = conv_GR_em_prop_agg,
              ylim = c(0, 1),
@@ -254,7 +254,7 @@ dev.off()
 
 # ----- KLD = 2,3 ------
 sc <- 0.72
-pdf("Figures/Fig_Res_Conv_k=3_Emission_Prop_NEW_KLD23_V2.pdf", width = 8*sc, height = 8*sc*(2/3)*0.95)
+pdf("4_plotting results/Figures/Fig_Res_Conv_k=3_Emission_Prop_NEW_KLD23_V2.pdf", width = 8*sc, height = 8*sc*(2/3)*0.95)
 
 PlotSimEmiss_KLD23(object = conv_GR_em_prop_agg,
                    ylim = c(0, 1),
@@ -272,7 +272,7 @@ dev.off()
 # --------------------------------------------------------
 
 sc <- 0.85
-pdf("Figures/Fig_Res_Conv_k=3_Transition_GR_NEW.pdf", width = 8*sc, height = 8*sc)
+pdf("4_plotting results/Figures/Fig_Res_Conv_k=3_Transition_GR_NEW.pdf", width = 8*sc, height = 8*sc)
 
 PlotSimTrans(object = conv_GR_trns_agg,
              ylim = c(0.8, 1.6),
@@ -286,7 +286,7 @@ dev.off()
 
 # ----- KLD = 2,3 ------
 sc <- 0.72
-pdf("Figures/Fig_Res_Conv_k=3_Transition_GR_NEW_KLD23_V2.pdf", width = 8*sc, height = 8*sc*(2/3)*0.95)
+pdf("4_plotting results/Figures/Fig_Res_Conv_k=3_Transition_GR_NEW_KLD23_V2.pdf", width = 8*sc, height = 8*sc*(2/3)*0.95)
 
 PlotSimTrans_KLD23(object = conv_GR_trns_agg,
                    ylim = c(0.8, 1.6),
@@ -304,7 +304,7 @@ dev.off()
 # --------------------------------------------------------
 
 sc <- 0.85
-pdf("Figures/Fig_Res_Conv_k=3_Transition_Prop_NEW.pdf", width = 8*sc, height = 8*sc)
+pdf("4_plotting results/Figures/Fig_Res_Conv_k=3_Transition_Prop_NEW.pdf", width = 8*sc, height = 8*sc)
 
 PlotSimTrans(object = conv_GR_trn_prop_agg,
              ylim = c(0, 1),
@@ -318,7 +318,7 @@ dev.off()
 
 # ----- KLD = 2,3 ------
 sc <- 0.72
-pdf("Figures/Fig_Res_Conv_k=3_Transition_Prop_NEW_KLD23_V2.pdf", width = 8*sc, height = 8*sc*(2/3)*0.95)
+pdf("4_plotting results/Figures/Fig_Res_Conv_k=3_Transition_Prop_NEW_KLD23_V2.pdf", width = 8*sc, height = 8*sc*(2/3)*0.95)
 
 PlotSimTrans_KLD23(object = conv_GR_trn_prop_agg,
                    ylim = c(0, 1),
@@ -335,9 +335,9 @@ dev.off()
 # ---------- Load Results: Model Selection ---------------
 # --------------------------------------------------------
 
-results_1st_new <- readRDS("result_tables/Model_selection_1st.RDS")
-results_2st_new <- readRDS("result_tables/Model_selection_2st.RDS")
-results_3st_new <- readRDS("result_tables/Model_selection_3st.RDS")
+results_1st_new <- readRDS("3_result_tables/Model_selection_1st.RDS")
+results_2st_new <- readRDS("3_result_tables/Model_selection_2st.RDS")
+results_3st_new <- readRDS("3_result_tables/Model_selection_3st.RDS")
 
 l_res <- list(results_1st_new,
               results_2st_new,
@@ -515,7 +515,7 @@ for(lc in 1:2) {
   # Loop over: with/without label switching
   for(v in 1:2) {
     sc <- 0.72
-    pdf(paste0("Figures/Fig_Res_ModelSelect_Accuracy_Bias_Agg_", IC[lc], "_", LS[v], ".pdf"), width = 8*sc, height = 8*sc*(2/3)*1)
+    pdf(paste0("4_plotting results/Figures/Fig_Res_ModelSelect_Accuracy_Bias_Agg_", IC[lc], "_", LS[v], ".pdf"), width = 8*sc, height = 8*sc*(2/3)*1)
 
     # ----- Define Layout -----
     lmat <- rbind(c(0, 1:3),
@@ -583,7 +583,7 @@ cols <- brewer.pal(4, "Set2")
 # Loop over: with/without label switching
 for(v in 1:2) {
   sc <- 0.72
-  pdf(paste0("Figures/Fig_Res_ModelSelect_Accuracy_", LS[v], ".pdf"), width = 8*sc, height = 8*sc*0.95)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_ModelSelect_Accuracy_", LS[v], ".pdf"), width = 8*sc, height = 8*sc*0.95)
 
   # ----- Define Layout -----
   lmat <- rbind(c(0, 1:3),
@@ -644,7 +644,7 @@ cols <- brewer.pal(4, "Set2")
 # Loop over: with/without label switching
 for(v in 1:2) {
   sc <- 0.72
-  pdf(paste0("Figures/Fig_Res_ModelSelect_Bias_", LS[v], ".pdf"), width = 8*sc, height = 8*sc*0.95)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_ModelSelect_Bias_", LS[v], ".pdf"), width = 8*sc, height = 8*sc*0.95)
 
   # ----- Define Layout -----
   lmat <- rbind(c(0, 1:3),
@@ -699,7 +699,7 @@ for(v in 1:2) {
 # ---------- Load Results: Emission Distributions ---------------
 # ---------------------------------------------------------------
 
-res_emiss <- readRDS("result_tables/Performance_emission_3st.RDS")
+res_emiss <- readRDS("3_result_tables/Performance_emission_3st.RDS")
 # NOTE: this actually contains the data for all K=1,2,3
 
 head(res_emiss)
@@ -820,7 +820,7 @@ LS <- c("All", "noL")
 # Loop over: with/without label switching
 for(v in 1:2) {
   sc <- 0.85
-  pdf(paste0("Figures/Fig_Res_Estimation_Mean_AbsRelBias_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Estimation_Mean_AbsRelBias_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
 
   PlotSimEmiss(object = l_emiss_mean_bias_agg_iter[[v]],
                ylim = c(0, .8),
@@ -835,7 +835,7 @@ for(v in 1:2) {
 # Loop over: with/without label switching
 for(v in 1:2) {
   sc <- 0.72
-  pdf(paste0("Figures/Fig_Res_Estimation_Mean_AbsRelBias_KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3)*0.95)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Estimation_Mean_AbsRelBias_KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3)*0.95)
 
   PlotSimEmiss_KLD23(object = l_emiss_mean_bias_agg_iter[[v]],
                      ylim = c(0, .15),
@@ -857,7 +857,7 @@ for(v in 1:2) {
 # Loop over: with/without label switching
 for(v in 1:2) {
   sc <- 0.85
-  pdf(paste0("Figures/Fig_Res_Estimation_Mean_Coverage_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Estimation_Mean_Coverage_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
 
   PlotSimEmiss(object = l_emiss_mean_cvrg_agg_iter[[v]],
                ylim = c(0, 1),
@@ -871,7 +871,7 @@ for(v in 1:2) {
 
 for(v in 1:2) {
   sc <- 0.72
-  pdf(paste0("Figures/Fig_Res_Estimation_Mean_Coverage__KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3)*0.95)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Estimation_Mean_Coverage__KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3)*0.95)
 
   PlotSimEmiss_KLD23(object = l_emiss_mean_cvrg_agg_iter[[v]],
                      ylim = c(0, 1),
@@ -897,7 +897,7 @@ for(v in 1:2) {
 
 for(v in 1:2) {
   sc <- 0.85
-  pdf(paste0("Figures/Fig_Res_Estimation_SD_RelBias_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Estimation_SD_RelBias_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
 
   PlotSimEmiss(object = l_emiss_SD_bias_agg_iter[[v]],
                ylim = c(0, 0.4),
@@ -912,7 +912,7 @@ for(v in 1:2) {
 # Loop over: with/without label switching
 for(v in 1:2) {
   sc <- 0.72
-  pdf(paste0("Figures/Fig_Res_Estimation_SD_RelBias_KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3)*0.95)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Estimation_SD_RelBias_KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3)*0.95)
 
   PlotSimEmiss_KLD23(object = l_emiss_SD_bias_agg_iter[[v]],
                      ylim = c(0, 0.15),
@@ -934,7 +934,7 @@ for(v in 1:2) {
 # Loop over: with/without label switching
 for(v in 1:2) {
   sc <- 0.85
-  pdf(paste0("Figures/Fig_Res_Estimation_SD_Precision_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Estimation_SD_Precision_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
 
   PlotSimEmiss(object = l_emiss_SD_est_agg_iter[[v]],
                ylim = c(0, 0.2),
@@ -948,7 +948,7 @@ for(v in 1:2) {
 # Loop over: with/without label switching
 for(v in 1:2) {
   sc <- 0.72
-  pdf(paste0("Figures/Fig_Res_Estimation_SD_Precision_KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3)*0.95)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Estimation_SD_Precision_KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3)*0.95)
 
   PlotSimEmiss_KLD23(object = l_emiss_SD_est_agg_iter[[v]],
                      ylim = c(0, 0.15),
@@ -969,7 +969,7 @@ for(v in 1:2) {
 # ------ All Three KLDs -----
 for(v in 1:2) {
   sc <- 0.85
-  pdf(paste0("Figures/Fig_Res_Estimation_SD_Coverage_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Estimation_SD_Coverage_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
 
   PlotSimEmiss(object = l_emiss_SD_cvrg_agg_iter[[v]],
                ylim = c(0, 1),
@@ -982,7 +982,7 @@ for(v in 1:2) {
 # ------ Version without KLD=1 -----
 for(v in 1:2) {
   sc <- 0.72
-  pdf(paste0("Figures/Fig_Res_Estimation_SD_Coverage__KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3)*0.95)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Estimation_SD_Coverage__KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3)*0.95)
 
   PlotSimEmiss_KLD23(object = l_emiss_SD_cvrg_agg_iter[[v]],
                      ylim = c(0, 1),
@@ -1000,7 +1000,7 @@ for(v in 1:2) {
 # ---------- Load Results: Transition Probabilities -------------
 # ---------------------------------------------------------------
 
-res_gam <- readRDS("result_tables/Performance_gamma_3st.RDS")
+res_gam <- readRDS("3_result_tables/Performance_gamma_3st.RDS")
 
 
 # --------------------------------------------------------
@@ -1124,7 +1124,7 @@ cols <- qualitative_hcl(n = 4, palette = "Dark3")
 # ------ All Three KLDs -----
 for(v in 1:2) {
   sc <- 0.85
-  pdf(paste0("Figures/Fig_Res_Transition_Bias_Raw_k=3_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Transition_Bias_Raw_k=3_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
 
   PlotSimTrans(object = l_trans_bias_raw_agg_iter[[v]],
                ylim = c(-0.2, 0.2),
@@ -1139,7 +1139,7 @@ for(v in 1:2) {
 # ------ Version without KLD=1 -----
 for(v in 1:2) {
   sc <- 0.72
-  pdf(paste0("Figures/Fig_Res_Transition_Bias_Raw_KLD23_k=3_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3))
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Transition_Bias_Raw_KLD23_k=3_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3))
 
   PlotSimTrans_KLD23(object = l_trans_bias_raw_agg_iter[[v]],
                      ylim = c(-0.05, 0.05),
@@ -1161,7 +1161,7 @@ for(v in 1:2) {
 
 for(v in 1:2) {
   sc <- 0.85
-  pdf(paste0("Figures/Fig_Res_Transition_Bias_Abs_k=3_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Transition_Bias_Abs_k=3_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
 
   PlotSimTrans(object = l_trans_bias_abs_agg_iter[[v]],
                ylim = c(0, 0.3),
@@ -1181,7 +1181,7 @@ for(v in 1:2) {
 # ------ All Three KLDs -----
 for(v in 1:2) {
   sc <- 0.85
-  pdf(paste0("Figures/Fig_Res_Transition_Coverage_k=3_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Transition_Coverage_k=3_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
 
   PlotSimTrans(object = l_emiss_mean_cvrg_agg_iter[[v]],
                ylim = c(0, 1),
@@ -1195,7 +1195,7 @@ for(v in 1:2) {
 # ------ Version without KLD=1 -----
 for(v in 1:2) {
   sc <- 0.72
-  pdf(paste0("Figures/Fig_Res_Transition_Coverage_KLD23_k=3_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3))
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Transition_Coverage_KLD23_k=3_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3))
 
   PlotSimTrans_KLD23(object = l_emiss_mean_cvrg_agg_iter[[v]],
                      ylim = c(0.8, 1),
@@ -1221,7 +1221,7 @@ for(v in 1:2) {
 
 for(v in 1:2) {
   sc <- 0.72
-  pdf(paste0("Figures/Fig_Res_Transition_Precision_KLD23_k=3_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3))
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Transition_Precision_KLD23_k=3_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3))
 
   PlotSimTrans_KLD23(object = l_trans_est_forSD_agg_iter[[v]],
                      ylim = c(0, 0.04),
@@ -1239,7 +1239,7 @@ for(v in 1:2) {
 # ---------- State Decoding: Load Data & Preprocess ------
 # --------------------------------------------------------
 
-res_decod <- readRDS("result_tables/State_decoding_3st.RDS")
+res_decod <- readRDS("3_result_tables/State_decoding_3st.RDS")
 head(res_decod)
 
 # ----- State Decoding: Accuracy -----
@@ -1285,7 +1285,7 @@ l_decod_kappa_drK_agg_ter <- list(decod_kappa_drK_agg_ter,
 
 for(v in 1:2) {
   sc <- 0.85
-  pdf(paste0("Figures/Fig_Res_Decoding_k=3_Accuracy_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Decoding_k=3_Accuracy_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
 
   PlotSimEmiss(object = l_decod_acc_drK_agg_ter[[v]],
                ylim = c(0, 1),
@@ -1300,7 +1300,7 @@ for(v in 1:2) {
 
 for(v in 1:2) {
   sc <- 0.72
-  pdf(paste0("Figures/Fig_Res_Decoding_k=3_Accuracy_KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3))
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Decoding_k=3_Accuracy_KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3))
 
   PlotSimEmiss_KLD23(object = l_decod_acc_drK_agg_ter[[v]],
                      ylim = c(0.85, 1),
@@ -1323,7 +1323,7 @@ for(v in 1:2) {
 
 for(v in 1:2) {
   sc <- 0.85
-  pdf(paste0("Figures/Fig_Res_Decoding_k=3_Kappa_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Decoding_k=3_Kappa_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc)
 
   PlotSimEmiss(object = l_decod_kappa_drK_agg_ter[[v]],
                ylim = c(0, 1),
@@ -1339,7 +1339,7 @@ for(v in 1:2) {
 
 for(v in 1:2) {
   sc <- 0.72
-  pdf(paste0("Figures/Fig_Res_Decoding_k=3_Kappa_KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3))
+  pdf(paste0("4_plotting results/Figures/Fig_Res_Decoding_k=3_Kappa_KLD23_", LS[v] ,".pdf"), width = 8*sc, height = 8*sc*(2/3))
 
   PlotSimEmiss_KLD23(object = l_decod_kappa_drK_agg_ter[[v]],
                      ylim = c(0.8, 1),
