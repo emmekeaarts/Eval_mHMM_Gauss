@@ -1,0 +1,21 @@
+#! /bin/bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=32
+#SBATCH -t 110:00:00
+
+module load 2025
+
+module load R/4.4.2-gfbf-2025a
+
+export MKL_NUM_THREADS=1     # to avoid that jobs compete for cores
+export R_LIBS=$HOME/rpackages:$R_LIBS   # Refer to the folder where you 
+                                        # have stored your R libraries
+
+cd $HOME/Jonas_gauss2 || exit
+
+for i in `seq 1 25`; do
+	(Rscript --no-save --slave simV4_3st_CoreF.R $i) &
+done
+wait
+
+cp $TMPDIR/* $HOME/Jonas_gauss2.
